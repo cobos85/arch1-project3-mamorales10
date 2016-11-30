@@ -4,6 +4,7 @@
 #include "shape.h"
 
 const AbRect rect10 = {abRectGetBounds, abRectCheck, 10,10};;
+char p1[] = "Player1:0";
 
 abDrawPos(AbShape *shape, Vec2 *shapeCenter, u_int fg_color, u_int bg_color)
 {
@@ -32,7 +33,21 @@ main()
   Vec2 rectPos = screenCenter;
 
   clearScreen(COLOR_BLUE);
-  drawString5x7(20,20, "hello", COLOR_GREEN, COLOR_RED);
+  drawString5x7(20,20,
+
+
+
+
+
+
+
+
+
+
+
+
+
+		p1 , COLOR_GREEN, COLOR_RED);
   shapeInit();
   
   abDrawPos((AbShape*)&rect10, &rectPos, COLOR_ORANGE, COLOR_BLUE);
