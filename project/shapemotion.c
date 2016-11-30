@@ -81,7 +81,7 @@ typedef struct MovLayer_s {
 
 /* initial value of {0,0} will be overwritten */
 MovLayer ml3 = { &ballLayer, {-1,2}, 0 }; /**< not all layers move */
-MovLayer ml1 = { &paddle2, {0,2}, &ml3 }; 
+MovLayer ml1 = { &paddle2, {0,0}, &ml3 }; 
 MovLayer ml0 = { &paddle1, {0,0}, &ml1 }; 
 
 
@@ -195,7 +195,7 @@ void player2Switches(u_int button){
 
   if(!(button & (1<<2)))
     ml1.velocity.axes[1] = 4;
-  else if((button & (1<<3)))
+  else if(!(button & (1<<3)))
     ml1.velocity.axes[1] = -4;
   else
     ml1.velocity.axes[1] = 0;
@@ -277,7 +277,7 @@ void main()
     redrawScreen = 0;
 
     player1Switches(button);
-    //player2Switches(button);
+    player2Switches(button);
     collision1();    
     collision2();
     changeScore();
