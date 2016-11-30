@@ -16,56 +16,58 @@
 
 #define GREEN_LED BIT6
 
+char p1[] = "Player1:0";
+char p2[] = "Player2:0";
 
-AbRect rect10 = {abRectGetBounds, abRectCheck, {10,10}}; /**< 10x10 rectangle */
-AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
+
+AbRect testRect = {abRectGetBounds, abRectCheck, {3, 12}}; /* 5x10 rectangle */
+AbRect testRect1 = {abRectGetBounds, abRectCheck, {3, 12}};
+AbRect centerField = {abRectGetBounds, abRectCheck, {1, (screenHeight/2)-2}}; 
 
 AbRectOutline fieldOutline = {	/* playing field */
   abRectOutlineGetBounds, abRectOutlineCheck,   
-  {screenWidth/2 - 10, screenHeight/2 - 10}
+  {(screenWidth/2)-2, (screenHeight/2)-2}
 };
 
-Layer layer4 = {
-  (AbShape *)&rightArrow,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_PINK,
+Layer ballLayer = {
+  (AbShape *)&circle8,
+  {(screenWidth/2), (screenHeight/2)},
+  {0,0}, {0,0},
+  COLOR_WHITE,
   0
 };
-  
 
-Layer layer3 = {		/**< Layer with an orange circle */
-  (AbShape *)&circle8,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_VIOLET,
-  &layer4,
+Layer netLayer = {
+  (AbShape *) &centerField,
+  {screenWidth/2, screenHeight/2},
+  {0,0}, {0,0},
+  COLOR_WHITE,
+  &ballLayer,
 };
-
 
 Layer fieldLayer = {		/* playing field as a layer */
   (AbShape *) &fieldOutline,
   {screenWidth/2, screenHeight/2},/**< center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_BLACK,
-  &layer3
+  COLOR_WHITE,
+  &netLayer,
 };
 
-Layer layer1 = {		/**< Layer with a red square */
-  (AbShape *)&rect10,
-  {screenWidth/2, screenHeight/2}, /**< center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_RED,
+Layer paddle2 = {
+  (AbShape *)&testRect1,
+  {((screenWidth*3)/4)+20, screenHeight/2},
+  {0,0}, {0,0},
+  COLOR_WHITE,
   &fieldLayer,
 };
 
-Layer layer0 = {		/**< Layer with an orange circle */
-  (AbShape *)&circle14,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_ORANGE,
-  &layer1,
-};
+Layer paddle1 = {
+  (AbShape *)&testRect,
+  {(screenWidth/4)-20, screenHeight/2},
+  {0,0}, {0,0},
+  COLOR_WHITE,
+  &paddle2,
+  };
 
 /** Moving Layer
  *  Linked list of layer references
@@ -78,12 +80,9 @@ typedef struct MovLayer_s {
 } MovLayer;
 
 /* initial value of {0,0} will be overwritten */
-MovLayer ml3 = { &layer3, {1,1}, 0 }; /**< not all layers move */
-MovLayer ml1 = { &layer1, {1,2}, &ml3 }; 
-MovLayer ml0 = { &layer0, {2,1}, &ml1 }; 
-
-
-
+MovLayer ml3 = { &ballLayer, {-1,2}, 0 }; /**< not all layers move */
+MovLayer ml1 = { &paddle2, {0,2}, &ml3 }; 
+MovLayer ml0 = { &paddle1, {0,0}, &ml1 }; 
 
 
 
@@ -154,11 +153,92 @@ void mlAdvance(MovLayer *ml, Region *fence)
 }
 
 
-u_int bgColor = COLOR_BLUE;     /**< The background color */
+void collision1(){
+
+  if((ballLayer.pos.axes[0]-(circle8.radius) <= (paddle1.pos.axes[0] + 1))
+     && (ballLayer.pos.axes[1] >= paddle1.pos.axes[1] - 12)
+     && (ballLayer.pos.axes[1] <= paddle1.pos.axes[1] + 12)){
+
+    ballLayer.posNext.axes[0] += 3;
+    ml3.velocity.axes[0] = -ml3.velocity.axes[0];
+  }
+}
+
+void collision2(){
+
+  if((ballLayer.pos.axes[0]+(circle8.radius) >= (paddle2.pos.axes[0] - 3))
+     && (ballLayer.pos.axes[1] >= paddle2.pos.axes[1] - 12)
+      && (ballLayer.pos.axes[1] <= paddle2.pos.axes[1] + 12)){
+
+    ballLayer.posNext.axes[0] -= 3;
+    ml3.velocity.axes[0] = -ml3.velocity.axes[0];
+  }
+
+}
+
+/* Received help on this method from Raul Hinostroza */
+void player1Switches(u_int button){
+
+ 
+  
+  if(!(button & (1<<0)))
+    ml0.velocity.axes[1] = 4;
+  else if(!(button & (1<<1)))
+    ml0.velocity.axes[1] = -4;
+  else
+    ml0.velocity.axes[1] = 0;
+  
+}
+/* Received help on this method from Raul Hinostroza */
+void player2Switches(u_int button){
+
+
+  if(!(button & (1<<2)))
+    ml1.velocity.axes[1] = 4;
+  else if((button & (1<<3)))
+    ml1.velocity.axes[1] = -4;
+  else
+    ml1.velocity.axes[1] = 0;
+
+}
+
+void changeScore(){
+
+  if((ballLayer.pos.axes[0] - circle8.radius) < 4){
+    if(p2[8]<'8'){
+      ballLayer.posNext.axes[0] = (screenWidth/2);
+      ballLayer.posNext.axes[1] = (screenHeight/2);
+      p2[8] = p2[8] + 1;
+    }
+    else{
+      p2[8] = p2[8] + 1;
+      ballLayer.posNext.axes[0] = (screenWidth/2);
+      ballLayer.posNext.axes[1] = (screenHeight/2);
+      ml3.velocity.axes[0] = ml3.velocity.axes[1] = 0;
+      drawString5x7((screenWidth/2)+7,14, "Winner", COLOR_YELLOW, COLOR_BLACK);
+    }
+  }
+   else if((ballLayer.pos.axes[0] + circle8.radius) > (screenWidth - 4)){
+    if(p1[8]<'8'){
+      ballLayer.posNext.axes[0] = (screenWidth/2);
+      ballLayer.posNext.axes[1] = (screenHeight/2);
+      p1[8] = p1[8] + 1;
+    }
+    else{
+      p1[8] = p1[8] + 1;
+      ballLayer.posNext.axes[0] = (screenWidth/2);
+      ballLayer.posNext.axes[1] = (screenHeight/2);
+      ml3.velocity.axes[0] = ml3.velocity.axes[1] = 0;
+      drawString5x7(7,14, "Winner", COLOR_ORANGE, COLOR_BLACK);
+    }
+  }
+  
+}
+
+u_int bgColor = COLOR_BLACK;     /**< The background color */
 int redrawScreen = 1;           /**< Boolean for whether screen needs to be redrawn */
 
 Region fieldFence;		/**< fence around playing field  */
-
 
 /** Initializes everything, enables interrupts and green LED, 
  *  and handles the rendering for the screen
@@ -171,43 +251,59 @@ void main()
   configureClocks();
   lcd_init();
   shapeInit();
-  p2sw_init(1);
+  p2sw_init(15);
 
   shapeInit();
 
-  layerInit(&layer0);
-  layerDraw(&layer0);
+  layerInit(&paddle1);
+  layerDraw(&paddle1);
 
-
+  
   layerGetBounds(&fieldLayer, &fieldFence);
-
-
+  
   enableWDTInterrupts();      /**< enable periodic interrupt */
   or_sr(0x8);	              /**< GIE (enable interrupts) */
 
+  u_int button;
+  for(;;) {
 
-  for(;;) { 
-    while (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
+    button = p2sw_read();
+    if (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
       P1OUT &= ~GREEN_LED;    /**< Green led off witHo CPU */
       or_sr(0x10);	      /**< CPU OFF */
+      
     }
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
     redrawScreen = 0;
-    movLayerDraw(&ml0, &layer0);
+
+    player1Switches(button);
+    //player2Switches(button);
+    collision1();    
+    collision2();
+    changeScore();
+    
+    drawString5x7(5,5, p1, COLOR_WHITE, COLOR_BLACK);
+    drawString5x7((screenWidth/2)+6, 5, p2, COLOR_WHITE, COLOR_BLACK);
+    
+    movLayerDraw(&ml0, &paddle1);
   }
 }
+
+
 
 /** Watchdog timer interrupt handler. 15 interrupts/sec */
 void wdt_c_handler()
 {
   static short count = 0;
-  P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
+  P1OUT |= GREEN_LED;/**< Green LED on when cpu on */
   count ++;
-  if (count == 15) {
+  if (count >= 15) {
     mlAdvance(&ml0, &fieldFence);
-    if (p2sw_read())
+    if (p2sw_read()){
       redrawScreen = 1;
+    }
+    
     count = 0;
-  }
+  } 
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
 }
